@@ -12,6 +12,7 @@ In first mode bot deletes all messages in the group (except messages from admins
 
 Second mode helps to quick asnwer to other user by declared commands. Messages in which declared command used will be deleted.
 
+
 Built-in commands
 --
 
@@ -45,3 +46,10 @@ Requirements
 --
 
 Bot requires Python 3 with telegram-python-bot and SQLAlchemy packages installed. Also deleting messages requires disabled privacy mode in telegram and permission to delete messages in chat.
+
+Configuration
+--
+
+To use this bot you should set bot token applied by @BotFather in btConfig.py
+
+All commands should be sended to chat thar commands you want to setup
