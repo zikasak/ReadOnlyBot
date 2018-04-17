@@ -1,3 +1,6 @@
 venv
 database.db
+btConfig.py
 .idea
+__pycache__
+.vscode
