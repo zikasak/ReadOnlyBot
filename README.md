@@ -28,7 +28,7 @@ update declared command with answer message
 
 delete declared command
 
->/getCommands
+>/getcommands
 
 get list of declared commands. List will be sended to user which call bot
 
@@ -40,7 +40,7 @@ start read only mode
 
 stop read only mode
 
-**NOTE:** all commands except declared and /getCommands available only to admins or creator
+**NOTE:** all commands except declared and /getcommands available only to admins or creator
 
 Requirements
 --

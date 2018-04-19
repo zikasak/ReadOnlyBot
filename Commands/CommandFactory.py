@@ -6,7 +6,7 @@ class CommandFactory:
         '/add': AddCommand,
         '/delete': DeleteCommand,
         '/update': UpdateCommand,
-        '/getCommands': GetCommandsCommand
+        '/getcommands': GetCommandsCommand
     }
 
     @staticmethod
