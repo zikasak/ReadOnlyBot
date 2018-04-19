@@ -4,7 +4,7 @@ from abc import abstractmethod
 from BtStatic import can_delete_messages
 from NetworkWorker import network_worker
 from dbSchema import GroupMessage, GroupStatus
-
+import simplejson
 
 class Command:
 
@@ -39,9 +39,11 @@ class AddCommand(Command):
     def execute(self, bot, update, txt):
         with self.dbWorker.session_scope() as session:
             msg = GroupMessage()
-            elem = self.parse_command(txt)
-            msg.command = elem[0]
-            msg.message = elem[1]
+
+            ms = simplejson.loads(txt.strip())
+            msg.command = ms['command']
+            msg.description = ms['description']
+            msg.message = ms['message']
             mdl = session.query(GroupStatus).get(update.message.chat_id)
             if mdl is None:
                 mdl = GroupStatus()
@@ -58,11 +60,12 @@ class UpdateCommand(Command):
 
     def execute(self, bot, update, txt):
         with self.dbWorker.session_scope() as session:
-            elem = self.parse_command(txt)
+            cmd = simplejson.loads(txt.strip())
             status = session.query(GroupStatus).get(update.message.chat_id)
             for i in status.messages:
-                if i.command == elem[0]:
-                    i.message = elem[1]
+                if i.command == cmd['command']:
+                    i.message = cmd['message']
+                    i.description = cmd['description']
 
 
 class DeleteCommand(Command):
@@ -82,7 +85,7 @@ class DeleteCommand(Command):
 class GetCommandsCommand(Command):
 
     def __init__(self, db_worker, cmd):
-        super().__init__(db_worker, cmd, True)
+        super().__init__(db_worker, cmd, False)
 
     def execute(self, bot, update, txt):
         with self.dbWorker.session_scope() as session:

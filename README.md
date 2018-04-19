@@ -16,11 +16,11 @@ Second mode helps to quick asnwer to other user by declared commands. Messages i
 Built-in commands
 --
 
-> /add \</command> \<answerMessage>
+> /add {"command": "</command>", "message": "<answerMessage>", "description": "<description>"}
 
 add declared command with answer messge
 
-> /update \</command> \<answerMessage>
+> /update {"command": "</command>", "message": "<answerMessage>", "description": "<description>"}
 
 update declared command with answer message
 
@@ -40,7 +40,7 @@ start read only mode
 
 stop read only mode
 
-**NOTE:** all commands except declared available only to admins or creator
+**NOTE:** all commands except declared and /getCommands available only to admins or creator
 
 Requirements
 --
