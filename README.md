@@ -40,11 +40,7 @@ start read only mode
 
 stop read only mode
 
-<<<<<<< HEAD
 **NOTE:** all commands except declared and /getcommands available only to admins or creator
-=======
-**NOTE:** all commands except declared available only to admins or creator
->>>>>>> parent of 0cb9bb2... change /add and /update syntax. Add command's description and user availability.
 
 Requirements
 --
