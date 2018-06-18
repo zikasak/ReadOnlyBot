@@ -82,7 +82,7 @@ class DeleteCommand(Command):
 class GetCommandsCommand(Command):
 
     def __init__(self, db_worker, cmd):
-        super().__init__(db_worker, cmd, True)
+        super().__init__(db_worker, cmd, False)
 
     def execute(self, bot, update, txt):
         with self.dbWorker.session_scope() as session:
