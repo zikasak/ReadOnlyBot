@@ -41,6 +41,10 @@ class Bt:
 
     def __set_read_only(self, bot, update, status, message):
         if is_user_admin(bot, update):
+            if can_delete_messages(bot, message):
+                network_worker(bot.delete_message,
+                           chat_id=update.message.chat_id,
+                           message_id=update.message.message_id)
             self.__change_read_only(update.message.chat_id, status)
             network_worker(bot.send_message, chat_id=update.message.chat_id, text=message)
 
