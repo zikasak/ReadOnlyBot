@@ -46,7 +46,10 @@ class Bt:
                            chat_id=update.message.chat_id,
                            message_id=update.message.message_id)
             self.__change_read_only(update.message.chat_id, status)
+            cmd, txt = Command.parse_command(update.message.text)
             network_worker(bot.send_message, chat_id=update.message.chat_id, text=message)
+            if txt is not None and txt != '':
+                network_worker(bot.send_message, chat_id=update.message.chat_id, text=txt)
 
     def __change_read_only(self, chat_id, status):
         with self.dbWorker.session_scope() as session:

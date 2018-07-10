@@ -32,13 +32,13 @@ delete declared command
 
 get list of declared commands. List will be sended to user which call bot
 
->/startRO
+>/startRO <additionalMessage>
 
-start read only mode
+start read only mode and send additional message to chat (if given)
 
->/stopRO
+>/stopRO <additionalMessage>
 
-stop read only mode
+stop read only mode and send additional message to chat (if given)
 
 **NOTE:** all commands except declared and /getcommands available only to admins or creator
 
