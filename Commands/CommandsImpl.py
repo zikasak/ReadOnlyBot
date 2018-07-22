@@ -128,3 +128,21 @@ class DefaultCommand(Command):
                 network_worker(bot.delete_message,
                                chat_id=update.message.chat_id,
                                message_id=update.message.message_id)
+
+class SetWelcomeMessage(Command):
+    
+    def __init__(self, db_worker, cmd):
+        super().__init__(db_worker, cmd, True)
+    
+    def execute(self, bot, update, txt):
+        with self.dbWorker.session_scope() as session:
+            group = session.query(GroupStatus).get(update.message.chat_id)
+            if group is None:
+                group = GroupStatus()
+                group.id = update.message.chat_id
+                session.add(group)
+            if (txt is None or txt == ''):
+                group.wel_message = None
+            else:
+                group.wel_message = txt
+

@@ -1,4 +1,4 @@
-from Commands.CommandsImpl import AddCommand, DeleteCommand, DefaultCommand, UpdateCommand, GetCommandsCommand
+from Commands.CommandsImpl import AddCommand, DeleteCommand, DefaultCommand, UpdateCommand, GetCommandsCommand, SetWelcomeMessage
 
 
 class CommandFactory:
@@ -6,7 +6,8 @@ class CommandFactory:
         '/add': AddCommand,
         '/delete': DeleteCommand,
         '/update': UpdateCommand,
-        '/getcommands': GetCommandsCommand
+        '/getcommands': GetCommandsCommand,
+        '/setwelcomemessage': SetWelcomeMessage
     }
 
     @staticmethod

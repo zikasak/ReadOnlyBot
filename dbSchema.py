@@ -8,6 +8,7 @@ class GroupStatus(Base):
     __tablename__ = 'groupstatus'
     id = Column(Integer, primary_key=True)
     status = Column(Boolean, default=False)
+    wel_message = Column(String)
     messages = relationship("GroupMessage", cascade="save-update, merge, delete, delete-orphan")
 
 

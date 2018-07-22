@@ -1,5 +1,4 @@
 from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, run_async
-
 from BtStatic import can_delete_messages, is_user_admin
 from Commands.CommandFactory import CommandFactory
 from Commands.CommandsImpl import Command
@@ -25,6 +24,19 @@ class Bt:
         self.__register_msg_handler(Filters.all &
                                     ~ Filters.text &
                                     ~ Filters.command, self.proceed_non_text_message)
+
+    def proceed_all_mes(self, bot, update):
+        members = update.message.new_chat_members
+        with self.dbWorker.session_scope() as session:
+            chat = session.query(GroupStatus).get(update.message.chat_id)
+            if chat is not None:
+                for member in members:
+                    repl = chat.wel_message
+                    repl = repl.replace("""{$name}""", member.first_name)
+                    network_worker(bot.send_message, 
+                        chat_id = update.message.chat_id,
+                        text=repl,
+                        disable_web_page_preview = True)
 
     def __register_cmd_handler(self, cmd, command):
         self.dispatcher.add_handler(CommandHandler(cmd, command))
@@ -60,11 +72,11 @@ class Bt:
                 gstatus.status = status
                 session.add(gstatus)
                 return
-            cur = cur_status.status
             cur_status.status = status
 
     @run_async
     def proceed_non_text_message(self, bot, update):
+        self.proceed_all_mes(bot, update)
         if self.is_need_delete(update.message.chat_id) and \
                 not is_user_admin(bot, update) and \
                 can_delete_messages(bot, update):

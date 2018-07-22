@@ -7,6 +7,7 @@ There are two functions in this bot at the moment:
 
 1. Read only mode.
 2. Fast answering by commands
+3. Welcome new members
 
 In first mode bot deletes all messages in the group (except messages from adminstrators and creator).
 
@@ -39,6 +40,10 @@ start read only mode and send additional message to chat (if given)
 >/stopRO <additionalMessage>
 
 stop read only mode and send additional message to chat (if given)
+
+>/setwelcomemessage <welcomeMessage>
+
+set message which will be sended to chat when new member enter to chat. Use {$name} to set where user first name will be stand in message
 
 **NOTE:** all commands except declared and /getcommands available only to admins or creator
 
