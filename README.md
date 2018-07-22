@@ -41,7 +41,7 @@ start read only mode and send additional message to chat (if given)
 
 stop read only mode and send additional message to chat (if given)
 
->/setwelcomemessage <welcomeMessage>
+>/setwelcomemessage \<welcomeMessage>
 
 set message which will be sended to chat when new member enter to chat. Use {$name} to set where user first name will be stand in message
 
