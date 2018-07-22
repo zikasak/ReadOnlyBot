@@ -32,6 +32,8 @@ class Bt:
             if chat is not None:
                 for member in members:
                     repl = chat.wel_message
+                    if repl is None:
+                        return
                     repl = repl.replace("""{$name}""", member.first_name)
                     network_worker(bot.send_message, 
                         chat_id = update.message.chat_id,
