@@ -33,11 +33,11 @@ class Bt:
         with self.dbWorker.session_scope() as session:
             chat = session.query(GroupStatus).get(update.message.chat_id)
             if chat is not None:
-                # for member in members:
+                for member in members:
                     repl = chat.wel_message
                     if repl is None:
                         return
-                    repl = repl.replace("""{$name}""", "member.first_name")
+                    repl = repl.replace("""{$name}""", member.first_name)
                     message = network_worker(bot.send_message, 
                         chat_id = update.message.chat_id,
                         text=repl,
