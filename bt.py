@@ -7,7 +7,7 @@ from btConfig import TOKEN
 from dbConfig import engine
 from dbSchema import GroupStatus
 from dbWorker import DbWorker
-
+import time
 
 class Bt:
 
@@ -24,21 +24,27 @@ class Bt:
         self.__register_msg_handler(Filters.all &
                                     ~ Filters.text &
                                     ~ Filters.command, self.proceed_non_text_message)
+        
+        
+
 
     def proceed_all_mes(self, bot, update):
         members = update.message.new_chat_members
         with self.dbWorker.session_scope() as session:
             chat = session.query(GroupStatus).get(update.message.chat_id)
             if chat is not None:
-                for member in members:
+                # for member in members:
                     repl = chat.wel_message
                     if repl is None:
                         return
-                    repl = repl.replace("""{$name}""", member.first_name)
-                    network_worker(bot.send_message, 
+                    repl = repl.replace("""{$name}""", "member.first_name")
+                    message = network_worker(bot.send_message, 
                         chat_id = update.message.chat_id,
                         text=repl,
                         disable_web_page_preview = True)
+                    time.sleep(30)
+                    if can_delete_messages(bot, update):
+                        network_worker(bot.delete_message, chat_id=message.chat_id, message_id=message.message_id)   
 
     def __register_cmd_handler(self, cmd, command):
         self.dispatcher.add_handler(CommandHandler(cmd, command))

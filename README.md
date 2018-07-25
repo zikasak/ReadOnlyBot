@@ -43,7 +43,7 @@ stop read only mode and send additional message to chat (if given)
 
 >/setwelcomemessage \<welcomeMessage>
 
-set message which will be sended to chat when new member enter to chat. Use {$name} to set where user first name will be stand in message
+set message which will be sended to chat when new member enter to chat. Use {$name} to set where user first name will be stand in message. Welcome message will be deleted (if bot have rights to do it) in 30 seconds.
 
 **NOTE:** all commands except declared and /getcommands available only to admins or creator
 
