@@ -49,6 +49,10 @@ class AddCommand(Command):
                 mdl.id = update.message.chat_id
                 session.add(mdl)
             mdl.messages.append(msg)
+        if can_delete_messages(bot, update):
+                network_worker(bot.delete_message,
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)
 
 
 class UpdateCommand(Command):
@@ -63,6 +67,10 @@ class UpdateCommand(Command):
             for i in status.messages:
                 if i.command == elem[0]:
                     i.message = elem[1]
+        if can_delete_messages(bot, update):
+                network_worker(bot.delete_message,
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)
 
 
 class DeleteCommand(Command):
@@ -77,6 +85,10 @@ class DeleteCommand(Command):
             # mdl = self.dbWorker.get_model(session, GroupStatus, update.message.chat_id)
             if mdl is not None:
                 mdl.messages = list(filter(lambda x: x.command != del_cmd, mdl.messages))
+        if can_delete_messages(bot, update):
+                network_worker(bot.delete_message,
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)
 
 
 class GetCommandsCommand(Command):
@@ -145,4 +157,8 @@ class SetWelcomeMessage(Command):
                 group.wel_message = None
             else:
                 group.wel_message = txt
+        if can_delete_messages(bot, update):
+                network_worker(bot.delete_message,
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)
 
