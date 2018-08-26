@@ -1,9 +1,12 @@
 from NetworkWorker import network_worker
 
 
-def is_user_admin(bot, update):
+def is_user_admin(bot, update, user = None):
     chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
+    if user is None:
+        user_id = update.message.from_user.id
+    else:
+        user_id = user.id
     us = network_worker(bot.get_chat_member, chat_id=chat_id, user_id=user_id)
     return us is not None and us.status in [us.CREATOR, us.ADMINISTRATOR]
 

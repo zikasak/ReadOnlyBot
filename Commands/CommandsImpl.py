@@ -1,7 +1,7 @@
 import re
 from abc import abstractmethod
 
-from BtStatic import can_delete_messages
+from BtStatic import can_delete_messages, is_user_admin
 from NetworkWorker import network_worker
 from dbSchema import GroupMessage, GroupStatus
 
@@ -128,7 +128,8 @@ class DefaultCommand(Command):
             cm = list(filter(lambda x: x.command == self.cmd, mdl.messages))
             if len(cm) == 0 or cm[0].message is None:
                 return
-            if update.message.reply_to_message is not None:
+            if update.message.reply_to_message is not None \
+                and not is_user_admin(bot, update, update.message.reply_to_message.from_user):
                 reply_msg_id = update.message.reply_to_message.message_id
             else:
                 reply_msg_id = None
