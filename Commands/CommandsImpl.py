@@ -18,10 +18,17 @@ class Command:
         pass
 
     @staticmethod
-    def parse_command(text):
-        regexp = re.compile('((^/\w+)|( /\w+))( [\s\S\w]+)?').search(text)
+    def parse_command(text: str):
+        regexp = re.compile('(/\w+)( [\s\S\w]+)?').search(text)
         if regexp is None:
             return '', ''
+        ind = text.index(regexp[0])
+        if ind != 0:
+            try:
+                text.index(' ' + regexp[0])
+            except ValueError:
+                return '', ''
+
         return regexp.groups()
 
 
