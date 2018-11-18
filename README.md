@@ -6,8 +6,9 @@ This Telegram bot helps you to administrate Telegram groups.
 There are three functions in this bot at the moment:
 
 1. Read only mode.
-2. Fast answering by commands
-3. Welcome new members
+2. Fast answering by commands.
+3. Welcome new members.
+4. Ban users
 
 In first mode bot deletes all messages in the group (except messages from adminstrators and creator).
 
@@ -45,6 +46,10 @@ stop read only mode and send additional message to chat (if given)
 >/setwelcomemessage \<welcomeMessage>
 
 set message which will be sended to chat when new member enter to chat. Use {$name} to set where user first name will be stand in message. Welcome message will be deleted (if bot have rights to do it) in 30 seconds.
+
+>/ban \<reason>
+
+ban user in this chat. Ban reason will be saved to the database. 
 
 **NOTE:** all commands except declared and /getcommands available only to admins or creator. Also all commands with bot and declared commands will be deleted.
 

@@ -10,6 +10,7 @@ class GroupStatus(Base):
     status = Column(Boolean, default=False)
     wel_message = Column(String)
     messages = relationship("GroupMessage", cascade="save-update, merge, delete, delete-orphan")
+    banned_users = relationship('BannedUser', cascade="save-update, merge, delete, delete-orphan")
 
 
 class GroupMessage(Base):
@@ -21,6 +22,14 @@ class GroupMessage(Base):
 
     def __repr__(self):
         return '{!r} - {!r}'.format(self.command, self.description)
+
+
+class BannedUser(Base):
+    __tablename__ = 'bannedusers'
+    chat_id = Column(Integer, ForeignKey("groupstatus.id"), primary_key=True)
+    user_id = Column(Integer, primary_key=True)
+    username = Column(String)
+    reason = Column(String)
 
 
 Base.metadata.create_all(engine)

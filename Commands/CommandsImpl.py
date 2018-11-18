@@ -3,7 +3,7 @@ from abc import abstractmethod
 
 from BtStatic import can_delete_messages, is_user_admin
 from NetworkWorker import network_worker
-from dbSchema import GroupMessage, GroupStatus
+from dbSchema import GroupMessage, GroupStatus, BannedUser
 
 
 class Command:
@@ -57,9 +57,9 @@ class AddCommand(Command):
                 session.add(mdl)
             mdl.messages.append(msg)
         if can_delete_messages(bot, update):
-                network_worker(bot.delete_message,
-                               chat_id=update.message.chat_id,
-                               message_id=update.message.message_id)
+            network_worker(bot.delete_message,
+                           chat_id=update.message.chat_id,
+                           message_id=update.message.message_id)
 
 
 class UpdateCommand(Command):
@@ -75,9 +75,9 @@ class UpdateCommand(Command):
                 if i.command == elem[0]:
                     i.message = elem[1]
         if can_delete_messages(bot, update):
-                network_worker(bot.delete_message,
-                               chat_id=update.message.chat_id,
-                               message_id=update.message.message_id)
+            network_worker(bot.delete_message,
+                           chat_id=update.message.chat_id,
+                           message_id=update.message.message_id)
 
 
 class DeleteCommand(Command):
@@ -93,9 +93,9 @@ class DeleteCommand(Command):
             if mdl is not None:
                 mdl.messages = list(filter(lambda x: x.command != del_cmd, mdl.messages))
         if can_delete_messages(bot, update):
-                network_worker(bot.delete_message,
-                               chat_id=update.message.chat_id,
-                               message_id=update.message.message_id)
+            network_worker(bot.delete_message,
+                           chat_id=update.message.chat_id,
+                           message_id=update.message.message_id)
 
 
 class GetCommandsCommand(Command):
@@ -136,7 +136,7 @@ class DefaultCommand(Command):
             if len(cm) == 0 or cm[0].message is None:
                 return
             if update.message.reply_to_message is not None \
-                and not is_user_admin(bot, update, update.message.reply_to_message.from_user):
+                    and not is_user_admin(bot, update, update.message.reply_to_message.from_user):
                 reply_msg_id = update.message.reply_to_message.message_id
             else:
                 reply_msg_id = None
@@ -149,11 +149,12 @@ class DefaultCommand(Command):
                                chat_id=update.message.chat_id,
                                message_id=update.message.message_id)
 
+
 class SetWelcomeMessage(Command):
-    
+
     def __init__(self, db_worker, cmd):
         super().__init__(db_worker, cmd, True)
-    
+
     def execute(self, bot, update, txt):
         with self.dbWorker.session_scope() as session:
             group = session.query(GroupStatus).get(update.message.chat_id)
@@ -161,12 +162,44 @@ class SetWelcomeMessage(Command):
                 group = GroupStatus()
                 group.id = update.message.chat_id
                 session.add(group)
-            if (txt is None or txt == ''):
+            if txt is None or txt == '':
                 group.wel_message = None
             else:
                 group.wel_message = txt
         if can_delete_messages(bot, update):
-                network_worker(bot.delete_message,
-                               chat_id=update.message.chat_id,
-                               message_id=update.message.message_id)
+            network_worker(bot.delete_message,
+                           chat_id=update.message.chat_id,
+                           message_id=update.message.message_id)
 
+
+class BanUser(Command):
+
+    def __init__(self, db_worker, cmd):
+        super().__init__(db_worker, cmd, True)
+
+    def execute(self, bot, update, txt):
+        with self.dbWorker.session_scope() as session:
+            mdl: GroupStatus = session.query(GroupStatus).get(update.message.chat_id)
+            if mdl is None:
+                return
+            if update.message.reply_to_message is not None \
+                    and not is_user_admin(bot, update, update.message.reply_to_message.from_user):
+                reply_user_id = update.message.reply_to_message.from_user.id
+            else:
+                reply_user_id= None
+            banned_user = filter(lambda x: x.user_id == reply_user_id, mdl.banned_users)
+            if len(list(banned_user)) > 0:
+                user = list(banned_user)[0]
+            else:
+                user = BannedUser()
+            user.user_id = reply_user_id
+            user.reason = txt
+            user.username = update.message.reply_to_message.username
+            mdl.banned_users.append(user)
+            network_worker(bot.kick_chat_member,
+                           chat_id=update.message.chat_id,
+                           user_id = reply_user_id)
+        if can_delete_messages(bot, update):
+            network_worker(bot.delete_message,
+                           chat_id=update.message.chat_id,
+                           message_id=update.message.message_id)

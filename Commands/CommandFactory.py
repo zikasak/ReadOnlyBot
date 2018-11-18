@@ -1,4 +1,5 @@
-from Commands.CommandsImpl import AddCommand, DeleteCommand, DefaultCommand, UpdateCommand, GetCommandsCommand, SetWelcomeMessage
+from Commands.CommandsImpl import AddCommand, DeleteCommand, DefaultCommand, UpdateCommand, GetCommandsCommand, \
+    SetWelcomeMessage, BanUser
 
 
 class CommandFactory:
@@ -7,7 +8,8 @@ class CommandFactory:
         '/delete': DeleteCommand,
         '/update': UpdateCommand,
         '/getcommands': GetCommandsCommand,
-        '/setwelcomemessage': SetWelcomeMessage
+        '/setwelcomemessage': SetWelcomeMessage,
+        '/ban': BanUser
     }
 
     @staticmethod
