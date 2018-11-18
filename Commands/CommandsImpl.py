@@ -194,7 +194,7 @@ class BanUser(Command):
                 user = BannedUser()
             user.user_id = reply_user_id
             user.reason = txt
-            user.username = update.message.reply_to_message.username
+            user.username = update.message.reply_to_message.from_user.username
             mdl.banned_users.append(user)
             network_worker(bot.kick_chat_member,
                            chat_id=update.message.chat_id,
