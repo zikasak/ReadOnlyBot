@@ -1,5 +1,5 @@
 import re
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 
 from BtStatic import can_delete_messages, is_user_admin
 from NetworkWorker import network_worker
@@ -172,34 +172,59 @@ class SetWelcomeMessage(Command):
                            message_id=update.message.message_id)
 
 
-class BanUser(Command):
+class BanMuteCommand(Command, ABC):
 
     def __init__(self, db_worker, cmd):
         super().__init__(db_worker, cmd, True)
 
-    def execute(self, bot, update, txt):
+    def _execute(self, bot, update, txt, method, **kwargs):
         with self.dbWorker.session_scope() as session:
             mdl: GroupStatus = session.query(GroupStatus).get(update.message.chat_id)
             if mdl is None:
-                return
+                mdl= GroupStatus()
+                mdl.id = update.message.chat_id
+                session.add(mdl)
             if update.message.reply_to_message is not None \
                     and not is_user_admin(bot, update, update.message.reply_to_message.from_user):
                 reply_user_id = update.message.reply_to_message.from_user.id
             else:
-                reply_user_id= None
-            banned_user = filter(lambda x: x.user_id == reply_user_id, mdl.banned_users)
-            if len(list(banned_user)) > 0:
-                user = list(banned_user)[0]
+                reply_user_id = None
+            banned_user = list(filter(lambda x: x.user_id == reply_user_id, mdl.banned_users))
+            if len(banned_user) > 0:
+                user = banned_user[0]
             else:
                 user = BannedUser()
             user.user_id = reply_user_id
             user.reason = txt
             user.username = update.message.reply_to_message.from_user.username
             mdl.banned_users.append(user)
-            network_worker(bot.kick_chat_member,
+            network_worker(method,
                            chat_id=update.message.chat_id,
-                           user_id = reply_user_id)
+                           user_id=reply_user_id, **kwargs)
         if can_delete_messages(bot, update):
             network_worker(bot.delete_message,
                            chat_id=update.message.chat_id,
                            message_id=update.message.message_id)
+
+
+class BanUser(BanMuteCommand):
+
+    def __init__(self, db_worker, cmd):
+        super().__init__(db_worker, cmd)
+
+    def execute(self, bot, update, txt):
+        self._execute(bot, update, txt, bot.kick_chat_member)
+
+
+class MuteUser(BanMuteCommand):
+
+    def __abs__(self):
+        def __init__(self, db_worker, cmd):
+            super().__init__(db_worker, cmd)
+
+    def execute(self, bot, update, txt):
+        self._execute(bot, update, txt, bot.restrict_chat_member,
+                      can_send_messages=False,
+                      can_send_media_messages=False,
+                      can_send_other_messages=False,
+                      can_add_web_page_previews=False)
