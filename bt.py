@@ -1,12 +1,11 @@
 import telegram
-from telegram import InlineKeyboardMarkup, update
+from telegram import InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, run_async, CallbackQueryHandler
 
 import API
 from BtStatic import can_delete_messages, is_user_admin, can_restrict_users, build_menu
 from Commands.CommandFactory import CommandFactory
 from Commands.CommandsImpl import Command
-from NetworkWorker import network_worker
 from btConfig import TOKEN
 from dbConfig import engine
 from dbSchema import GroupStatus, MutedUser
