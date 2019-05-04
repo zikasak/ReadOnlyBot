@@ -1,6 +1,7 @@
 import re
 from abc import abstractmethod, ABC
 
+import API
 from BtStatic import can_delete_messages, is_user_admin
 from NetworkWorker import network_worker
 from dbSchema import GroupMessage, GroupStatus, BannedUser
@@ -57,9 +58,9 @@ class AddCommand(Command):
                 session.add(mdl)
             mdl.messages.append(msg)
         if can_delete_messages(bot, update):
-            network_worker(bot.delete_message,
-                           chat_id=update.message.chat_id,
-                           message_id=update.message.message_id)
+            API.delete_message(bot,
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)
 
 
 class UpdateCommand(Command):
@@ -75,9 +76,9 @@ class UpdateCommand(Command):
                 if i.command == elem[0]:
                     i.message = elem[1]
         if can_delete_messages(bot, update):
-            network_worker(bot.delete_message,
-                           chat_id=update.message.chat_id,
-                           message_id=update.message.message_id)
+            API.delete_message(bot,
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)
 
 
 class DeleteCommand(Command):
@@ -93,9 +94,9 @@ class DeleteCommand(Command):
             if mdl is not None:
                 mdl.messages = list(filter(lambda x: x.command != del_cmd, mdl.messages))
         if can_delete_messages(bot, update):
-            network_worker(bot.delete_message,
-                           chat_id=update.message.chat_id,
-                           message_id=update.message.message_id)
+            API.delete_message(bot,
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)
 
 
 class GetCommandsCommand(Command):
@@ -109,10 +110,12 @@ class GetCommandsCommand(Command):
             group_messages = list(map(lambda x: str(x), group_messages))
         res_string = "Команды для чата {!r}: \n".format(update.message.chat.title)
         append_str = "\n".join(group_messages)
-        network_worker(bot.send_message, chat_id=update.message.from_user.id,
-                       text=res_string + append_str)
+        API.send_message(bot, chat_id=update.message.from_user.id,
+                         text=res_string + append_str)
         if can_delete_messages(bot, update):
-            network_worker(bot.delete_message, chat_id=update.message.chat_id, message_id=update.message.message_id)
+            API.delete_message(bot,
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)
 
     def __get_group_messages(self, bot, update, session):
         group_status = session.query(GroupStatus).get(update.message.chat_id)
@@ -140,14 +143,14 @@ class DefaultCommand(Command):
                 reply_msg_id = update.message.reply_to_message.message_id
             else:
                 reply_msg_id = None
-            network_worker(bot.send_message,
-                           chat_id=update.message.chat_id,
-                           reply_to_message_id=reply_msg_id,
-                           text=cm[0].message)
+            API.send_message(bot,
+                             chat_id=update.message.chat_id,
+                             reply_to_message_id=reply_msg_id,
+                             text=cm[0].message)
             if can_delete_messages(bot, update):
-                network_worker(bot.delete_message,
-                               chat_id=update.message.chat_id,
-                               message_id=update.message.message_id)
+                API.delete_message(bot,
+                                   chat_id=update.message.chat_id,
+                                   message_id=update.message.message_id)
 
 
 class SetWelcomeMessage(Command):
@@ -173,9 +176,9 @@ class SetWelcomeMessage(Command):
                 group.wel_message = text
             group.new_users_blocked = isBlocking
         if can_delete_messages(bot, update):
-            network_worker(bot.delete_message,
-                           chat_id=update.message.chat_id,
-                           message_id=update.message.message_id)
+            API.delete_message(bot,
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)
 
 
 class BanMuteCommand(Command, ABC):
@@ -187,7 +190,7 @@ class BanMuteCommand(Command, ABC):
         with self.dbWorker.session_scope() as session:
             mdl: GroupStatus = session.query(GroupStatus).get(update.message.chat_id)
             if mdl is None:
-                mdl= GroupStatus()
+                mdl = GroupStatus()
                 mdl.id = update.message.chat_id
                 session.add(mdl)
             if update.message.reply_to_message is not None \
@@ -204,13 +207,13 @@ class BanMuteCommand(Command, ABC):
             user.reason = txt
             user.username = update.message.reply_to_message.from_user.username
             mdl.banned_users.append(user)
-            network_worker(method,
-                           chat_id=update.message.chat_id,
-                           user_id=reply_user_id, **kwargs)
+            API.use_custom_api_method(method,
+                                      chat_id=update.message.chat_id,
+                                      user_id=reply_user_id, **kwargs)
         if can_delete_messages(bot, update):
-            network_worker(bot.delete_message,
-                           chat_id=update.message.chat_id,
-                           message_id=update.message.message_id)
+            API.delete_message(bot,
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)
 
 
 class BanUser(BanMuteCommand):
