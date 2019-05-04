@@ -1,20 +1,23 @@
-from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, run_async
-from BtStatic import can_delete_messages, is_user_admin
+import telegram
+from telegram import InlineKeyboardMarkup, update
+from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, run_async, CallbackQueryHandler
+from BtStatic import can_delete_messages, is_user_admin, can_restrict_users, build_menu
 from Commands.CommandFactory import CommandFactory
 from Commands.CommandsImpl import Command
 from NetworkWorker import network_worker
 from btConfig import TOKEN
 from dbConfig import engine
-from dbSchema import GroupStatus
+from dbSchema import GroupStatus, MutedUser
 from dbWorker import DbWorker
 import time
+
 
 class Bt:
 
     def __init__(self):
         self.dbWorker = DbWorker(engine)
         self.needDelete = False
-        self.updater = Updater(token= TOKEN,
+        self.updater = Updater(token=TOKEN,
                                request_kwargs={'read_timeout': 6, 'connect_timeout': 7})
         self.dispatcher = self.updater.dispatcher
         self.__register_cmd_handler('startRO', self.start_read_only)
@@ -24,27 +27,80 @@ class Bt:
         self.__register_msg_handler(Filters.all &
                                     ~ Filters.text &
                                     ~ Filters.command, self.proceed_non_text_message)
-        
-        
+        self.dispatcher.add_handler(CallbackQueryHandler(self.unlock_member, pass_user_data=False))
 
+    def unlock_member(self, bot, update):
+        """
+
+                :param update: telegram.Update
+                :type bot: telegram.Bot
+        """
+        chat_id = update.effective_chat.id
+
+        if not can_restrict_users(bot, chat_id=chat_id):
+            return
+        query = update.callback_query
+        if "applied" not in query.data:
+            return
+        user_id = update.effective_user.id
+        if str(user_id) not in query.data:
+            return
+        with self.dbWorker.session_scope() as session:
+            network_worker(bot.restrict_chat_member,
+                           passException=True,
+                           chat_id=chat_id,
+                           user_id=user_id,
+                           can_send_messages=True,
+                           can_send_media_messages=True,
+                           can_send_other_messages=True,
+                           can_add_web_page_previews=True
+                           )
+            session.query(MutedUser).filter(MutedUser.chat_id == chat_id,
+                                            MutedUser.user_id == user_id).delete()
+        if not can_delete_messages(bot, chat_id=chat_id):
+            return
+        mess_id = update.effective_message.message_id
+        network_worker(bot.delete_message,
+                       chat_id=chat_id,
+                       message_id=mess_id)
 
     def proceed_all_mes(self, bot, update):
+        """
+
+        :param update: telegram.Update
+        :type bot: telegram.Bot
+        """
         members = update.message.new_chat_members
         with self.dbWorker.session_scope() as session:
-            chat = session.query(GroupStatus).get(update.message.chat_id)
+            chat: GroupStatus = session.query(GroupStatus).get(update.message.chat_id)
             if chat is not None:
                 for member in members:
                     repl = chat.wel_message
                     if repl is None:
                         return
                     repl = repl.replace("""{$name}""", member.first_name)
-                    message = network_worker(bot.send_message, 
-                        chat_id = update.message.chat_id,
-                        text=repl,
-                        disable_web_page_preview = True)
-                    time.sleep(30)
-                    if can_delete_messages(bot, update):
-                        network_worker(bot.delete_message, chat_id=message.chat_id, message_id=message.message_id)   
+                    kwargs = {"chat_id": update.message.chat_id,
+                              "text": repl,
+                              "disable_web_page_preview": True}
+                    #message = network_worker(bot.send_message,
+                    #                         chat_id=update.message.chat_id,
+                    #                         text=repl,
+                    #                         disable_web_page_preview=True)
+                    if not chat.new_users_blocked or not can_restrict_users(bot, update):
+                        message = self.__send_wel_message(bot, kwargs)
+                        time.sleep(30)
+                        if can_delete_messages(bot, update):
+                            network_worker(bot.delete_message, chat_id=message.chat_id, message_id=message.message_id)
+                    else:
+                        chat.add_muted(member.id)
+                        unlock_button = telegram.InlineKeyboardButton("Закрепленное сообщение прочитано", callback_data="applied " + str(member.id))
+                        reply_markup = InlineKeyboardMarkup(build_menu([unlock_button], n_cols=1))
+                        kwargs["reply_markup"] = reply_markup
+                        self.__send_wel_message(bot, kwargs)
+                        bot.restrict_chat_member(update.message.chat_id, member.id)
+
+    def __send_wel_message(self, bot, kwargs):
+        return network_worker(bot.send_message, **kwargs)
 
     def __register_cmd_handler(self, cmd, command):
         self.dispatcher.add_handler(CommandHandler(cmd, command))
@@ -63,8 +119,8 @@ class Bt:
         if is_user_admin(bot, update):
             if can_delete_messages(bot, update):
                 network_worker(bot.delete_message,
-                           chat_id=update.message.chat_id,
-                           message_id=update.message.message_id)
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)
             self.__change_read_only(update.message.chat_id, status)
             cmd, txt = Command.parse_command(update.message.text)
             network_worker(bot.send_message, chat_id=update.message.chat_id, text=message)
