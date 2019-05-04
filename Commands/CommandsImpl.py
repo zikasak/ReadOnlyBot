@@ -156,16 +156,22 @@ class SetWelcomeMessage(Command):
         super().__init__(db_worker, cmd, True)
 
     def execute(self, bot, update, txt):
+        pattern = re.compile('^(?P<param>b )?(?P<text>[\s\S\w]+)')
+        m = pattern.search(txt.strip())
+        text = m.group('text')
+        isBlocking = m.group('param')
+        isBlocking = isBlocking is not None and "" != isBlocking
         with self.dbWorker.session_scope() as session:
             group = session.query(GroupStatus).get(update.message.chat_id)
             if group is None:
                 group = GroupStatus()
                 group.id = update.message.chat_id
                 session.add(group)
-            if txt is None or txt == '':
+            if txt is None or text == '':
                 group.wel_message = None
             else:
-                group.wel_message = txt
+                group.wel_message = text
+            group.new_users_blocked = isBlocking
         if can_delete_messages(bot, update):
             network_worker(bot.delete_message,
                            chat_id=update.message.chat_id,
