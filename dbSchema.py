@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, Boolean, ForeignKey, String
+import datetime
+
+from sqlalchemy import Column, Integer, Boolean, ForeignKey, String, Date, DateTime
 from sqlalchemy.orm import relationship
 
 from dbConfig import Base, engine
@@ -14,10 +16,11 @@ class GroupStatus(Base):
     banned_users = relationship('BannedUser', cascade="save-update, merge, delete, delete-orphan")
     mutted_users = relationship('MutedUser', cascade="save-update, merge, delete, delete-orphan")
 
-    def add_muted(self, user_id):
+    def add_muted(self, user_id, message_id):
         m = MutedUser()
         m.chat_id = self.id
         m.user_id = user_id
+        m.welcome_msg_id=message_id
         if m not in self.mutted_users:
             self.mutted_users.append(m)
 
@@ -37,6 +40,8 @@ class MutedUser(Base):
     __tablename__ = 'muted'
     chat_id = Column(Integer, ForeignKey("groupstatus.id"), primary_key=True)
     user_id = Column(Integer, primary_key=True)
+    mute_date = Column(DateTime, nullable=False, default=datetime.datetime.now())
+    welcome_msg_id = Column(Integer, nullable=False)
 
     def __eq__(self, o: object) -> bool:
         if type(o) != MutedUser:
