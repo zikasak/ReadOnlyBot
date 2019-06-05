@@ -1,7 +1,9 @@
 import datetime
 
+
 from sqlalchemy import Column, Integer, Boolean, ForeignKey, String, Date, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy_utc import UtcDateTime
 
 from dbConfig import Base, engine
 
@@ -40,7 +42,7 @@ class MutedUser(Base):
     __tablename__ = 'muted'
     chat_id = Column(Integer, ForeignKey("groupstatus.id"), primary_key=True)
     user_id = Column(Integer, primary_key=True)
-    mute_date = Column(DateTime, nullable=False, default=datetime.datetime.now())
+    mute_date = Column(UtcDateTime , nullable=False, default=datetime.datetime.now())
     welcome_msg_id = Column(Integer, nullable=False)
 
     def __eq__(self, o: object) -> bool:
