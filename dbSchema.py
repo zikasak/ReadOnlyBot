@@ -1,4 +1,4 @@
-import datetime
+import datetime, pytz
 
 
 from sqlalchemy import Column, Integer, Boolean, ForeignKey, String, Date, DateTime
@@ -22,7 +22,8 @@ class GroupStatus(Base):
         m = MutedUser()
         m.chat_id = self.id
         m.user_id = user_id
-        m.welcome_msg_id=message_id
+        m.welcome_msg_id = message_id
+        m.mute_date = datetime.datetime.now().astimezone(pytz.utc)
         if m not in self.mutted_users:
             self.mutted_users.append(m)
 

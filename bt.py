@@ -1,6 +1,7 @@
 import datetime
-from typing import List, Any
+from typing import List
 
+import pytz
 import telegram
 from telegram import InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, run_async, CallbackQueryHandler
@@ -177,10 +178,10 @@ def proceed_non_text_message(bot, update):
 
 
 def kicking_users(bot, job):
-    to = datetime.datetime.now()
     users: List[MutedUser] = []
     with dbWorker.session_scope() as session:
-        users = session.query(MutedUser).filter(MutedUser.mute_date < to - datetime.timedelta(minutes=15)).all()
+        current = datetime.datetime.now().astimezone(pytz.utc)
+        users = session.query(MutedUser).filter(MutedUser.mute_date < (current - datetime.timedelta(minutes=15))).all()
         for user in users:
             if not can_delete_messages(bot, None, user.chat_id) or not can_restrict_users(bot, None, user.chat_id):
                 continue
