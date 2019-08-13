@@ -181,7 +181,7 @@ def kicking_users(bot, job):
     users: List[MutedUser] = []
     with dbWorker.session_scope() as session:
         current = datetime.datetime.now().astimezone(pytz.utc)
-        users = session.query(MutedUser).filter(MutedUser.mute_date < (current - datetime.timedelta(minutes=15))).all()
+        users = session.query(MutedUser).filter(MutedUser.mute_date < (current - datetime.timedelta(minutes=5))).all()
         for user in users:
             if not can_delete_messages(bot, None, user.chat_id) or not can_restrict_users(bot, None, user.chat_id):
                 continue
