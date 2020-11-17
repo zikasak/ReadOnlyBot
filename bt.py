@@ -126,7 +126,7 @@ def proceed_message(bot, update):
 
 
 def send_wel_message(bot, kwargs):
-    return API.send_message(bot, **kwargs)
+    return API.send_message(bot, parse_mode='HTML', **kwargs)
 
 
 def proceed_all_mes(bot, update):
@@ -144,7 +144,7 @@ def proceed_all_mes(bot, update):
             repl = chat.wel_message
             if repl is None:
                 return
-            repl = repl.replace("""{$name}""", member.first_name)
+            repl = repl.replace("""{$name}""", f"""<a href="tg://user?id={member.id}">{member.first_name}</a>""")
             kwargs = {"chat_id": update.message.chat_id,
                       "text": repl,
                       "disable_web_page_preview": True}
