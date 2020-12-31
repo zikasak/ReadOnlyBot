@@ -17,7 +17,8 @@ from dbWorker import DbWorker
 import time
 
 
-def __set_read_only(bot, update, status, message):
+def __set_read_only(update, context, status, message):
+    bot = context.bot
     if is_user_admin(bot, update):
         if can_delete_messages(bot, update):
             API.delete_message(bot,
@@ -56,8 +57,8 @@ def __register_cmd_handler(cmd, command):
     dispatcher.add_handler(CommandHandler(cmd, command))
 
 
-def __register_msg_handler(filter, command):
-    dispatcher.add_handler(MessageHandler(filter, command))
+def __register_msg_handler(filter, command, **kwargs):
+    dispatcher.add_handler(MessageHandler(filter, command, kwargs))
 
 
 def start_read_only(bot, update):
@@ -108,8 +109,8 @@ def unlock_member(bot, update):
                        message_id=mess_id)
 
 
-@run_async
-def proceed_message(bot, update):
+def proceed_message(update, context):
+    bot = context.bot
     if not proceed_non_text_message(bot, update):
         return
     cmd, txt = Command.parse_command(update.message.text)
@@ -164,8 +165,8 @@ def proceed_all_mes(bot, update):
                 bot.restrict_chat_member(update.message.chat_id, member.id)
 
 
-@run_async
 def proceed_non_text_message(bot, update):
+
     proceed_all_mes(bot, update)
     if is_need_delete(update.message.chat_id) and \
             not is_user_admin(bot, update) and \
@@ -177,7 +178,7 @@ def proceed_non_text_message(bot, update):
     return True
 
 
-def kicking_users(bot, job):
+def kicking_users(bot):
     users: List[MutedUser] = []
     with dbWorker.session_scope() as session:
         current = datetime.datetime.now().astimezone(pytz.utc)
@@ -199,9 +200,9 @@ dispatcher = updater.dispatcher
 __register_cmd_handler('startRO', start_read_only)
 __register_cmd_handler('stopRO', end_read_only)
 __register_msg_handler(Filters.text |
-                       Filters.command, proceed_message)
+                       Filters.command, proceed_message, run_async=True)
 __register_msg_handler(Filters.all &
                        ~ Filters.text &
-                       ~ Filters.command, proceed_non_text_message)
+                       ~ Filters.command, proceed_non_text_message, run_async=True)
 dispatcher.add_handler(CallbackQueryHandler(unlock_member, pass_user_data=False))
 updater.job_queue.run_repeating(kicking_users, interval=60)
