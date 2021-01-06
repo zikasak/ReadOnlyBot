@@ -7,8 +7,8 @@ def send_message(bot, **kwargs):
     return network_worker(bot.send_message, False, **kwargs)
 
 
-def restrict_chat_member(bot, **kwargs):
-    return network_worker(bot.restrict_chat_member, False, **kwargs)
+def restrict_chat_member(bot, pass_exception=False, **kwargs):
+    return network_worker(bot.restrict_chat_member, pass_exception, **kwargs)
 
 
 def delete_message(bot, chat_id, message_id, **kwargs):

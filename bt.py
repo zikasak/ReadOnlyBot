@@ -91,6 +91,7 @@ def unlock_member(update, callback):
         return
     with dbWorker.session_scope() as session:
         API.restrict_chat_member(bot,
+                                 pass_exception=True,
                                  chat_id=chat_id,
                                  user_id=user_id,
                                  permissions=telegram.ChatPermissions(
