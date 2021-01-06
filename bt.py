@@ -73,14 +73,14 @@ def end_read_only(bot, update):
 dbWorker = DbWorker(engine)
 
 
-def unlock_member(bot, update):
+def unlock_member(update, callback):
     """
 
             :param update: telegram.Update
             :type bot: telegram.Bot
     """
     chat_id = update.effective_chat.id
-
+    bot = callback.bot
     if not can_restrict_users(bot, chat_id=chat_id):
         return
     query = update.callback_query
@@ -91,13 +91,13 @@ def unlock_member(bot, update):
         return
     with dbWorker.session_scope() as session:
         API.restrict_chat_member(bot,
-                                 passException=True,
                                  chat_id=chat_id,
                                  user_id=user_id,
-                                 can_send_messages=True,
-                                 can_send_media_messages=True,
-                                 can_send_other_messages=True,
-                                 can_add_web_page_previews=True
+                                 permissions=telegram.ChatPermissions(
+                                     can_send_messages=True,
+                                     can_send_media_messages=True,
+                                     can_send_other_messages=True,
+                                     can_add_web_page_previews=True)
                                  )
         session.query(MutedUser).filter(MutedUser.chat_id == chat_id,
                                         MutedUser.user_id == user_id).delete()
@@ -111,7 +111,7 @@ def unlock_member(bot, update):
 
 def proceed_message(update, context):
     bot = context.bot
-    if not proceed_non_text_message(bot, update):
+    if not proceed_non_text_message(update, context):
         return
     cmd, txt = Command.parse_command(update.message.text)
     if cmd == '':
@@ -163,12 +163,12 @@ def proceed_all_mes(update, callback):
                 kwargs["reply_markup"] = reply_markup
                 msg = send_wel_message(bot, kwargs)
                 chat.add_muted(member.id, msg.message_id)
-                bot.restrict_chat_member(update.message.chat_id, member.id)
+                bot.restrict_chat_member(update.message.chat_id, member.id, telegram.ChatPermissions())
 
 
-def proceed_non_text_message(bot, update):
-
-    proceed_all_mes(bot, update)
+def proceed_non_text_message(update, callback):
+    bot = callback.bot
+    proceed_all_mes(update, callback)
     if is_need_delete(update.message.chat_id) and \
             not is_user_admin(bot, update) and \
             can_delete_messages(bot, update):
