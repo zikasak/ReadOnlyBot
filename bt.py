@@ -130,12 +130,13 @@ def send_wel_message(bot, kwargs):
     return API.send_message(bot, parse_mode='HTML', **kwargs)
 
 
-def proceed_all_mes(bot, update):
+def proceed_all_mes(update, callback):
     """
 
     :param update: telegram.Update
     :type bot: telegram.Bot
     """
+    bot = callback.bot
     members = update.message.new_chat_members
     with dbWorker.session_scope() as session:
         chat: GroupStatus = session.query(GroupStatus).get(update.message.chat_id)
