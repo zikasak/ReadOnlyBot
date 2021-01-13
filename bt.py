@@ -180,7 +180,8 @@ def proceed_non_text_message(update, callback):
     return True
 
 
-def kicking_users(bot):
+def kicking_users(context):
+    bot = context.bot
     users: List[MutedUser] = []
     with dbWorker.session_scope() as session:
         current = datetime.datetime.now().astimezone(pytz.utc)
