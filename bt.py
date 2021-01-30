@@ -90,6 +90,13 @@ def unlock_member(update, callback):
     if str(user_id) not in query.data:
         return
     with dbWorker.session_scope() as session:
+        lock_info = session.query(MutedUser).filter(MutedUser.chat_id == chat_id,
+                                        MutedUser.user_id == user_id).first()
+        current = datetime.datetime.now().astimezone(pytz.utc)
+        time_over = lock_info.mute_date.astimezone(pytz.utc) < (current - datetime.timedelta(seconds=30))
+        if time_over:
+            API.send_message(bot, chat_id=chat_id, text="А лукавить нехорошо. Пожалуйста, прочитайте");
+            return
         API.restrict_chat_member(bot,
                                  pass_exception=True,
                                  chat_id=chat_id,
@@ -100,8 +107,7 @@ def unlock_member(update, callback):
                                      can_send_other_messages=True,
                                      can_add_web_page_previews=True)
                                  )
-        session.query(MutedUser).filter(MutedUser.chat_id == chat_id,
-                                        MutedUser.user_id == user_id).delete()
+
     if not can_delete_messages(bot, chat_id=chat_id):
         return
     mess_id = update.effective_message.message_id
