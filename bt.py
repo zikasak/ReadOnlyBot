@@ -94,7 +94,7 @@ def unlock_member(update, callback):
                                         MutedUser.user_id == user_id).first()
         current = datetime.datetime.now().astimezone(pytz.utc)
         time_over = lock_info.mute_date.astimezone(pytz.utc) < (current - datetime.timedelta(seconds=30))
-        if time_over:
+        if not time_over:
             API.send_message(bot, chat_id=chat_id, text="А лукавить нехорошо. Пожалуйста, прочитайте");
             return
         API.restrict_chat_member(bot,
