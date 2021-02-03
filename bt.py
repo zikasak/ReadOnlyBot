@@ -1,7 +1,6 @@
 import datetime
 from typing import List
 
-import pytz
 import telegram
 from telegram import InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, run_async, CallbackQueryHandler
@@ -13,8 +12,10 @@ from Commands.CommandsImpl import Command
 from btConfig import TOKEN
 from dbConfig import engine
 from dbSchema import GroupStatus, MutedUser
-from dbWorker import DbWorker
+import dbWorker
 import time
+
+dataWorker = dbWorker.DbWorker(engine)
 
 
 def __set_read_only(update, context, status, message):
@@ -27,12 +28,12 @@ def __set_read_only(update, context, status, message):
         change_read_only(update.message.chat_id, status)
         cmd, txt = Command.parse_command(update.message.text)
         API.send_message(bot, chat_id=update.message.chat_id, text=message)
-        if txt is not None and txt != '':
+        if txt is not None and txt != "":
             API.send_message(bot, chat_id=update.message.chat_id, text=txt)
 
 
 def change_read_only(chat_id, status):
-    with dbWorker.session_scope() as session:
+    with dataWorker.session_scope() as session:
         cur_status = session.query(GroupStatus).get(chat_id)
         if cur_status is None:
             gstatus = GroupStatus()
@@ -45,10 +46,11 @@ def change_read_only(chat_id, status):
 
 def start_bot():
     updater.start_polling()
+    updater.idle()
 
 
 def is_need_delete(chat_id):
-    with dbWorker.session_scope() as session:
+    with dataWorker.session_scope() as session:
         cur_status = session.query(GroupStatus).get(chat_id)
         return cur_status is not None and cur_status.status
 
@@ -70,9 +72,6 @@ def end_read_only(bot, update):
     __set_read_only(bot, update, False, "Режим 'Только чтение' отключен")
 
 
-dbWorker = DbWorker(engine)
-
-
 def unlock_member(update, callback):
     """
 
@@ -89,13 +88,17 @@ def unlock_member(update, callback):
     user_id = update.effective_user.id
     if str(user_id) not in query.data:
         return
-    with dbWorker.session_scope() as session:
-        lock_info = session.query(MutedUser).filter(MutedUser.chat_id == chat_id,
-                                        MutedUser.user_id == user_id).first()
-        current = datetime.datetime.now().astimezone(pytz.utc)
-        time_over = lock_info.mute_date.astimezone(pytz.utc) < (current - datetime.timedelta(seconds=30))
+    with dataWorker.session_scope() as session:
+        lock_info_query = session.query(MutedUser).filter(MutedUser.chat_id == chat_id,
+                                                          MutedUser.user_id == user_id)
+        lock_info: MutedUser = lock_info_query.first()
+        current = datetime.datetime.now()
+        required = lock_info.mute_date
+        resulted_time = current - datetime.timedelta(seconds=30)
+        time_over = required < resulted_time
         if not time_over:
-            API.send_message(bot, chat_id=chat_id, text="А лукавить нехорошо. Пожалуйста, прочитайте");
+            message = API.send_message(bot, chat_id=chat_id, text="А лукавить нехорошо. Пожалуйста, прочитайте");
+            dbWorker.add_time_message(lock_info, message)
             return
         API.restrict_chat_member(bot,
                                  pass_exception=True,
@@ -107,13 +110,8 @@ def unlock_member(update, callback):
                                      can_send_other_messages=True,
                                      can_add_web_page_previews=True)
                                  )
-
-    if not can_delete_messages(bot, chat_id=chat_id):
-        return
-    mess_id = update.effective_message.message_id
-    API.delete_message(bot,
-                       chat_id=chat_id,
-                       message_id=mess_id)
+        delete_welcome_message(lock_info, bot)
+        session.delete(lock_info)
 
 
 def proceed_message(update, context):
@@ -121,9 +119,9 @@ def proceed_message(update, context):
     if not proceed_non_text_message(update, context):
         return
     cmd, txt = Command.parse_command(update.message.text)
-    if cmd == '':
+    if cmd == "":
         return
-    command_to_exec = CommandFactory.get_command_handler(cmd, dbWorker)
+    command_to_exec = CommandFactory.get_command_handler(cmd, dataWorker)
     if command_to_exec.is_admin_rights_needed and not is_user_admin(bot, update):
         if can_delete_messages(bot, update):
             API.delete_message(bot,
@@ -134,7 +132,7 @@ def proceed_message(update, context):
 
 
 def send_wel_message(bot, kwargs):
-    return API.send_message(bot, parse_mode='HTML', **kwargs)
+    return API.send_message(bot, parse_mode="HTML", **kwargs)
 
 
 def proceed_all_mes(update, callback):
@@ -145,7 +143,7 @@ def proceed_all_mes(update, callback):
     """
     bot = callback.bot
     members = update.message.new_chat_members
-    with dbWorker.session_scope() as session:
+    with dataWorker.session_scope() as session:
         chat: GroupStatus = session.query(GroupStatus).get(update.message.chat_id)
         if chat is None:
             return
@@ -189,25 +187,39 @@ def proceed_non_text_message(update, callback):
 def kicking_users(context):
     bot = context.bot
     users: List[MutedUser] = []
-    with dbWorker.session_scope() as session:
-        current = datetime.datetime.now().astimezone(pytz.utc)
+    with dataWorker.session_scope() as session:
+        current = datetime.datetime.now()
         users = session.query(MutedUser).filter(MutedUser.mute_date < (current - datetime.timedelta(minutes=5))).all()
         for user in users:
-            if not can_delete_messages(bot, None, user.chat_id) or not can_restrict_users(bot, None, user.chat_id):
+            if not can_delete_messages(bot, None, user.chat_id) or \
+                    not can_restrict_users(bot, None, user.chat_id):
                 continue
             API.kick_chat_member(bot, user.chat_id, user.user_id,
                                  until_date=datetime.datetime.now() + datetime.timedelta(seconds=60))
-            session.query(MutedUser).filter(MutedUser.user_id == user.user_id,
-                                            MutedUser.chat_id == user.chat_id).delete()
-            API.delete_message(bot, chat_id=user.chat_id, message_id=user.welcome_msg_id)
+            delete_welcome_message(user, bot)
+            session.delete(user)
+
+
+def delete_welcome_message(lock_info: MutedUser, bot: telegram.bot):
+    chat_id = lock_info.chat_id
+    if not can_delete_messages(bot, chat_id=chat_id):
+        return
+    for message in lock_info.time_messages:
+        API.delete_message(bot,
+                           chat_id=chat_id,
+                           message_id=message.msg_id)
+    mess_id = lock_info.welcome_msg_id
+    API.delete_message(bot,
+                       chat_id=chat_id,
+                       message_id=mess_id)
 
 
 needDelete = False
 updater = Updater(token=TOKEN,
-                  request_kwargs={'read_timeout': 6, 'connect_timeout': 7})
+                  request_kwargs={"read_timeout": 6, "connect_timeout": 7})
 dispatcher = updater.dispatcher
-__register_cmd_handler('startRO', start_read_only)
-__register_cmd_handler('stopRO', end_read_only)
+__register_cmd_handler("startRO", start_read_only)
+__register_cmd_handler("stopRO", end_read_only)
 __register_msg_handler(Filters.text |
                        Filters.command, proceed_message, run_async=True)
 __register_msg_handler(Filters.all &

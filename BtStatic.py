@@ -2,6 +2,7 @@ import API
 from NetworkWorker import network_worker
 from telegram import constants
 
+
 def is_user_admin(bot, update, user=None):
     chat_id = update.message.chat_id
     if user is None:
@@ -13,7 +14,7 @@ def is_user_admin(bot, update, user=None):
                                  == constants.ANONYMOUS_ADMIN_ID)
 
 
-def can_delete_messages(bot, update=None, chat_id = None):
+def can_delete_messages(bot, update=None, chat_id=None):
     chat_id = update.message.chat_id if chat_id is None else chat_id
     user_id = bot.id
     us = API.get_chat_member(bot, chat_id=chat_id, user_id=user_id)
@@ -37,5 +38,3 @@ def build_menu(buttons,
     if footer_buttons:
         menu.append(footer_buttons)
     return menu
-
-
