@@ -92,7 +92,7 @@ def unlock_member(update, callback):
         lock_info_query = session.query(MutedUser).filter(MutedUser.chat_id == chat_id,
                                                           MutedUser.user_id == user_id)
         lock_info: MutedUser = lock_info_query.first()
-        current = datetime.datetime.now()
+        current = datetime.datetime.utcnow()
         required = lock_info.mute_date
         resulted_time = current - datetime.timedelta(seconds=30)
         time_over = required < resulted_time
@@ -188,14 +188,15 @@ def kicking_users(context):
     bot = context.bot
     users: List[MutedUser] = []
     with dataWorker.session_scope() as session:
-        current = datetime.datetime.now()
+        current = datetime.datetime.utcnow()
         users = session.query(MutedUser).filter(MutedUser.mute_date < (current - datetime.timedelta(minutes=5))).all()
         for user in users:
             if not can_delete_messages(bot, None, user.chat_id) or \
                     not can_restrict_users(bot, None, user.chat_id):
                 continue
             API.kick_chat_member(bot, user.chat_id, user.user_id,
-                                 until_date=datetime.datetime.now() + datetime.timedelta(seconds=60))
+                                 until_date=datetime.datetime.utcnow() + datetime.timedelta(
+                                     seconds=60))
             delete_welcome_message(user, bot)
             session.delete(user)
 

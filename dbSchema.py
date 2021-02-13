@@ -1,8 +1,7 @@
 import datetime
-from sqlalchemy import Column, Integer, Boolean, ForeignKey, String, DateTime, UniqueConstraint
+from sqlalchemy import Column, Integer, Boolean, ForeignKey, String, DateTime, UniqueConstraint, ForeignKeyConstraint
 from sqlalchemy.orm import relationship
 
-import timeUtil
 from dbConfig import Base, engine
 
 
@@ -21,18 +20,16 @@ class GroupStatus(Base):
         m.chat_id = self.id
         m.user_id = user_id
         m.welcome_msg_id = message_id
-        # m.mute_date = timeUtil.convert_date_to_utc(datetime.datetime.now())
-        m.mute_date = datetime.datetime.now()
+        m.mute_date = datetime.datetime.utcnow()
         if m not in self.mutted_users:
             self.mutted_users.append(m)
 
 
 class GroupMessage(Base):
     __tablename__ = "groupmessage"
-    id = Column(Integer, primary_key=True)
-    chat_id = Column(Integer, ForeignKey("groupstatus.id"))
+    chat_id = Column(Integer, ForeignKey("groupstatus.id"), primary_key=True)
     message = Column(String)
-    command = Column(String)
+    command = Column(String, primary_key=True)
     description = Column(String, default="")
     UniqueConstraint('chat_id', 'command')
 
@@ -42,15 +39,13 @@ class GroupMessage(Base):
 
 class MutedUser(Base):
     __tablename__ = "muted"
-    id = Column(Integer, primary_key=True)
-    chat_id = Column(Integer, ForeignKey("groupstatus.id"))
-    user_id = Column(Integer)
-    mute_date = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now())
+    chat_id = Column(Integer, ForeignKey("groupstatus.id"), primary_key=True)
+    user_id = Column(Integer, primary_key=True)
+    mute_date = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow())
     welcome_msg_id = Column(Integer, nullable=False)
-    time_messages = relationship("TimeExceededMessage", cascade="save-update, merge, delete, delete-orphan")
-
-    def get_mute_date(self):
-        return timeUtil.convert_date_to_local(self.mute_date)
+    time_messages = relationship("TimeExceededMessage", cascade="save-update, merge, delete, delete-orphan",
+                                 primaryjoin="and_(MutedUser.chat_id==TimeExceededMessage.chat_id, "
+                                             "MutedUser.user_id==TimeExceededMessage.user_id)")
 
     def __eq__(self, obj: object) -> bool:
         if type(obj) != MutedUser:
@@ -61,17 +56,16 @@ class MutedUser(Base):
 class TimeExceededMessage(Base):
     __tablename__ = "mutedMessages"
     id = Column(Integer, primary_key=True)
-    chat_id = Column(Integer, ForeignKey("groupstatus.id"))
+    chat_id = Column(Integer)
     user_id = Column(Integer)
     welcome_msg_id = Column(Integer, ForeignKey("muted.welcome_msg_id"))
     msg_id = Column(Integer, nullable=False)
-    
+    __table_args__ = (ForeignKeyConstraint([chat_id, user_id], [MutedUser.chat_id, MutedUser.user_id]),{})
 
 class BannedUser(Base):
     __tablename__ = "bannedusers"
-    id = Column(Integer, primary_key=True)
-    chat_id = Column(Integer, ForeignKey("groupstatus.id"))
-    user_id = Column(Integer)
+    chat_id = Column(Integer, ForeignKey("groupstatus.id"), primary_key=True)
+    user_id = Column(Integer, primary_key=True)
     username = Column(String)
     reason = Column(String)
 
