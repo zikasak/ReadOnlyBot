@@ -248,6 +248,7 @@ class SetMuteTime(Command):
             chat: GroupStatus = session.query(GroupStatus).get(update.message.chat_id)
             if chat is None:
                 return
+            txt = txt.strip()
             pattern = re.compile("^(\\d+)").search(txt)
             if pattern is None:
                 return
