@@ -1,5 +1,5 @@
 from Commands.CommandsImpl import AddCommand, DeleteCommand, DefaultCommand, UpdateCommand, GetCommandsCommand, \
-    SetWelcomeMessage, BanUser, MuteUser
+    SetWelcomeMessage, BanUser, MuteUser, SetMuteTime
 
 
 class CommandFactory:
@@ -10,7 +10,8 @@ class CommandFactory:
         '/getcommands': GetCommandsCommand,
         '/setwelcomemessage': SetWelcomeMessage,
         '/ban': BanUser,
-        '/mute': MuteUser
+        '/mute': MuteUser,
+        '/mutetime': SetMuteTime,
     }
 
     @staticmethod

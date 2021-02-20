@@ -193,11 +193,10 @@ class BanMuteCommand(Command, ABC):
                 mdl = GroupStatus()
                 mdl.id = update.message.chat_id
                 session.add(mdl)
+            reply_user_id = None
             if update.message.reply_to_message is not None \
                     and not is_user_admin(bot, update, update.message.reply_to_message.from_user):
                 reply_user_id = update.message.reply_to_message.from_user.id
-            else:
-                reply_user_id = None
             banned_user = list(filter(lambda x: x.user_id == reply_user_id, mdl.banned_users))
             if len(banned_user) > 0:
                 user = banned_user[0]
@@ -237,3 +236,24 @@ class MuteUser(BanMuteCommand):
                       can_send_media_messages=False,
                       can_send_other_messages=False,
                       can_add_web_page_previews=False)
+
+
+class SetMuteTime(Command):
+
+    def __init__(self, db_worker, cmd):
+        super().__init__(db_worker, cmd, True)
+
+    def execute(self, bot, update, txt):
+        with self.dbWorker.session_scope() as session:
+            chat: GroupStatus = session.query(GroupStatus).get(update.message.chat_id)
+            if chat is None:
+                return
+            pattern = re.compile("^(\\d+)").search(txt)
+            if pattern is None:
+                return
+            duration = int(pattern.group(0))
+            chat.time_to_mute = duration
+        if can_delete_messages(bot, update):
+            API.delete_message(bot,
+                               chat_id=update.message.chat_id,
+                               message_id=update.message.message_id)

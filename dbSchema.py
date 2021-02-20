@@ -11,9 +11,10 @@ class GroupStatus(Base):
     status = Column(Boolean, default=False)
     wel_message = Column(String)
     new_users_blocked = Column(Boolean, default=False)
+    time_to_mute = Column(Integer, default=30)
     messages = relationship("GroupMessage", cascade="save-update, merge, delete, delete-orphan")
     banned_users = relationship("BannedUser", cascade="save-update, merge, delete, delete-orphan")
-    mutted_users = relationship("MutedUser", cascade="save-update, merge, delete, delete-orphan")
+    mutted_users = relationship("MutedUser", backref="chat", cascade="save-update, merge, delete, delete-orphan")
 
     def add_muted(self, user_id, message_id):
         m = MutedUser()
@@ -60,7 +61,8 @@ class TimeExceededMessage(Base):
     user_id = Column(Integer)
     welcome_msg_id = Column(Integer, ForeignKey("muted.welcome_msg_id"))
     msg_id = Column(Integer, nullable=False)
-    __table_args__ = (ForeignKeyConstraint([chat_id, user_id], [MutedUser.chat_id, MutedUser.user_id]),{})
+    __table_args__ = (ForeignKeyConstraint([chat_id, user_id], [MutedUser.chat_id, MutedUser.user_id]), {})
+
 
 class BannedUser(Base):
     __tablename__ = "bannedusers"

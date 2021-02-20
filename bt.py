@@ -4,7 +4,6 @@ from typing import List
 import telegram
 from telegram import InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, run_async, CallbackQueryHandler
-
 import API
 from BtStatic import can_delete_messages, is_user_admin, can_restrict_users, build_menu
 from Commands.CommandFactory import CommandFactory
@@ -94,7 +93,9 @@ def unlock_member(update, callback):
         lock_info: MutedUser = lock_info_query.first()
         current = datetime.datetime.utcnow()
         required = lock_info.mute_date
-        resulted_time = current - datetime.timedelta(seconds=30)
+        time_to_mute = lock_info.chat.time_to_mute
+        time_to_mute = 30 if time_to_mute is None else time_to_mute
+        resulted_time = current - datetime.timedelta(seconds=time_to_mute)
         time_over = required < resulted_time
         if not time_over:
             message = API.send_message(bot, chat_id=chat_id, text="А лукавить нехорошо. Пожалуйста, прочитайте");
@@ -135,25 +136,18 @@ def send_wel_message(bot, kwargs):
     return API.send_message(bot, parse_mode="HTML", **kwargs)
 
 
-def proceed_all_mes(update, callback):
-    """
-
-    :param update: telegram.Update
-    :type bot: telegram.Bot
-    """
+def proceed_new_members(update, callback):
     bot = callback.bot
     members = update.message.new_chat_members
     with dataWorker.session_scope() as session:
         chat: GroupStatus = session.query(GroupStatus).get(update.message.chat_id)
-        if chat is None:
+        reply_template = chat.wel_message
+        if chat is None or reply_template is None:
             return
         for member in members:
-            repl = chat.wel_message
-            if repl is None:
-                return
-            repl = repl.replace("""{$name}""", f"""<a href="tg://user?id={member.id}">{member.first_name}</a>""")
+            reply = reply_template.replace("""{$name}""", f"""<a href="tg://user?id={member.id}">{member.first_name}</a>""")
             kwargs = {"chat_id": update.message.chat_id,
-                      "text": repl,
+                      "text": reply,
                       "disable_web_page_preview": True}
             if not chat.new_users_blocked or not can_restrict_users(bot, update):
                 message = send_wel_message(bot, kwargs)
@@ -173,7 +167,7 @@ def proceed_all_mes(update, callback):
 
 def proceed_non_text_message(update, callback):
     bot = callback.bot
-    proceed_all_mes(update, callback)
+    proceed_new_members(update, callback)
     if is_need_delete(update.message.chat_id) and \
             not is_user_admin(bot, update) and \
             can_delete_messages(bot, update):
