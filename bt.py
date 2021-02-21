@@ -1,9 +1,8 @@
 import datetime
-from typing import List
 
 import telegram
 from telegram import InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, run_async, CallbackQueryHandler
+from telegram.ext import Updater, CommandHandler, Filters, MessageHandler, CallbackQueryHandler
 import API
 from BtStatic import can_delete_messages, is_user_admin, can_restrict_users, build_menu
 from Commands.CommandFactory import CommandFactory
@@ -19,16 +18,17 @@ dataWorker = dbWorker.DbWorker(engine)
 
 def __set_read_only(update, context, status, message):
     bot = context.bot
-    if is_user_admin(bot, update):
-        if can_delete_messages(bot, update):
-            API.delete_message(bot,
-                               chat_id=update.message.chat_id,
-                               message_id=update.message.message_id)
-        change_read_only(update.message.chat_id, status)
-        cmd, txt = Command.parse_command(update.message.text)
-        API.send_message(bot, chat_id=update.message.chat_id, text=message)
-        if txt is not None and txt != "":
-            API.send_message(bot, chat_id=update.message.chat_id, text=txt)
+    if not is_user_admin(bot, update):
+        return
+    if can_delete_messages(bot, update):
+        API.delete_message(bot,
+                           chat_id=update.message.chat_id,
+                           message_id=update.message.message_id)
+    change_read_only(update.message.chat_id, status)
+    cmd, txt = Command.parse_command(update.message.text)
+    API.send_message(bot, chat_id=update.message.chat_id, text=message)
+    if txt is not None and txt != "":
+        API.send_message(bot, chat_id=update.message.chat_id, text=txt)
 
 
 def change_read_only(chat_id, status):
@@ -145,7 +145,8 @@ def proceed_new_members(update, callback):
         if chat is None or reply_template is None:
             return
         for member in members:
-            reply = reply_template.replace("""{$name}""", f"""<a href="tg://user?id={member.id}">{member.first_name}</a>""")
+            reply = reply_template.replace("""{$name}""",
+                                           f"""<a href="tg://user?id={member.id}">{member.first_name}</a>""")
             kwargs = {"chat_id": update.message.chat_id,
                       "text": reply,
                       "disable_web_page_preview": True}
@@ -180,19 +181,23 @@ def proceed_non_text_message(update, callback):
 
 def kicking_users(context):
     bot = context.bot
-    users: List[MutedUser] = []
+    current = datetime.datetime.utcnow()
+    destination_time = current - datetime.timedelta(minutes=5)
     with dataWorker.session_scope() as session:
-        current = datetime.datetime.utcnow()
-        users = session.query(MutedUser).filter(MutedUser.mute_date < (current - datetime.timedelta(minutes=5))).all()
+        users = session.query(MutedUser).filter(MutedUser.mute_date < destination_time).all()
         for user in users:
-            if not can_delete_messages(bot, None, user.chat_id) or \
-                    not can_restrict_users(bot, None, user.chat_id):
-                continue
-            API.kick_chat_member(bot, user.chat_id, user.user_id,
-                                 until_date=datetime.datetime.utcnow() + datetime.timedelta(
-                                     seconds=60))
-            delete_welcome_message(user, bot)
-            session.delete(user)
+            kick_user(user, bot, session)
+
+
+def kick_user(user, bot, session):
+    if not can_delete_messages(bot, None, user.chat_id) or \
+            not can_restrict_users(bot, None, user.chat_id):
+        return
+    API.kick_chat_member(bot, user.chat_id, user.user_id,
+                         until_date=datetime.datetime.utcnow() + datetime.timedelta(
+                             seconds=60))
+    delete_welcome_message(user, bot)
+    session.delete(user)
 
 
 def delete_welcome_message(lock_info: MutedUser, bot: telegram.bot):
