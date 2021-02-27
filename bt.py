@@ -139,15 +139,17 @@ def send_wel_message(bot, kwargs):
 def proceed_new_members(update, callback):
     bot = callback.bot
     members = update.message.new_chat_members
+    chat_id = update.message.chat_id
+    API.delete_message(bot, chat_id, update.message.message_id)
     with dataWorker.session_scope() as session:
-        chat: GroupStatus = session.query(GroupStatus).get(update.message.chat_id)
+        chat: GroupStatus = session.query(GroupStatus).get(chat_id)
         reply_template = chat.wel_message
         if chat is None or reply_template is None:
             return
         for member in members:
             reply = reply_template.replace("""{$name}""",
                                            f"""<a href="tg://user?id={member.id}">{member.first_name}</a>""")
-            kwargs = {"chat_id": update.message.chat_id,
+            kwargs = {"chat_id": chat_id,
                       "text": reply,
                       "disable_web_page_preview": True}
             if not chat.new_users_blocked or not can_restrict_users(bot, update):
@@ -163,7 +165,7 @@ def proceed_new_members(update, callback):
                 kwargs["reply_markup"] = reply_markup
                 msg = send_wel_message(bot, kwargs)
                 chat.add_muted(member.id, msg.message_id)
-                bot.restrict_chat_member(update.message.chat_id, member.id, telegram.ChatPermissions())
+                bot.restrict_chat_member(chat_id, member.id, telegram.ChatPermissions())
 
 
 def proceed_non_text_message(update, callback):
