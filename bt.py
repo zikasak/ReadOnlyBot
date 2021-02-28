@@ -195,9 +195,11 @@ def kick_user(user, bot, session):
     if not can_delete_messages(bot, None, user.chat_id) or \
             not can_restrict_users(bot, None, user.chat_id):
         return
-    API.kick_chat_member(bot, user.chat_id, user.user_id,
-                         until_date=datetime.datetime.utcnow() + datetime.timedelta(
-                             seconds=60))
+    chat_member = API.get_chat_member(bot, user.chat_id, user.user_id)
+    if chat_member.is_member:
+        API.kick_chat_member(bot, user.chat_id, user.user_id,
+                             until_date=datetime.datetime.utcnow() + datetime.timedelta(
+                                 seconds=60))
     delete_welcome_message(user, bot)
     session.delete(user)
 
