@@ -12,6 +12,10 @@ from dbConfig import engine
 from dbSchema import GroupStatus, MutedUser
 import dbWorker
 import time
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 dataWorker = dbWorker.DbWorker(engine)
 
@@ -139,6 +143,7 @@ def send_wel_message(bot, kwargs):
 def proceed_new_members(update, callback):
     bot = callback.bot
     members = update.message.new_chat_members
+    logger.info(members)
     if len(members) == 0:
         return
     chat_id = update.message.chat_id
