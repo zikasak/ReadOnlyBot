@@ -139,6 +139,8 @@ def send_wel_message(bot, kwargs):
 def proceed_new_members(update, callback):
     bot = callback.bot
     members = update.message.new_chat_members
+    if len(members) == 0:
+        return
     chat_id = update.message.chat_id
     API.delete_message(bot, chat_id, update.message.message_id)
     with dataWorker.session_scope() as session:
