@@ -15,6 +15,7 @@ class GroupStatus(Base):
     messages = relationship("GroupMessage", cascade="save-update, merge, delete, delete-orphan")
     banned_users = relationship("BannedUser", cascade="save-update, merge, delete, delete-orphan")
     mutted_users = relationship("MutedUser", backref="chat", cascade="save-update, merge, delete, delete-orphan")
+    blocked_phrases = relationship("BlockedPhrases", backref="chat", cascade="save-update, merge, delete, delete-orphan")
 
     def add_muted(self, user_id, message_id):
         m = MutedUser()
@@ -71,5 +72,11 @@ class BannedUser(Base):
     username = Column(String)
     reason = Column(String)
 
+
+class BlockedPhrases(Base):
+    __tablename__ = "blockedPhrases"
+    id = Column(Integer, primary_key=True)
+    chat_id = Column(Integer, ForeignKey("groupstatus.id"))
+    blockedPhrase = Column(String, nullable=False)
 
 Base.metadata.create_all(engine)

@@ -9,7 +9,7 @@ from Commands.CommandFactory import CommandFactory
 from Commands.CommandsImpl import Command
 from btConfig import TOKEN
 from dbConfig import engine
-from dbSchema import GroupStatus, MutedUser
+from dbSchema import GroupStatus, MutedUser, BlockedPhrases
 import dbWorker
 import time
 import logging
@@ -123,8 +123,10 @@ def proceed_message(update, context):
     bot = context.bot
     if not proceed_non_text_message(update, context):
         return
+
     cmd, txt = Command.parse_command(update.message.text)
     if cmd == "":
+        delete_blocked_phrases(update, context)
         return
     command_to_exec = CommandFactory.get_command_handler(cmd, dataWorker)
     if command_to_exec.is_admin_rights_needed and not is_user_admin(bot, update):
@@ -134,6 +136,25 @@ def proceed_message(update, context):
                                message_id=update.message.message_id)
     else:
         command_to_exec.execute(bot, update, txt)
+
+
+def delete_blocked_phrases(update, context):
+    chat_id = update.effective_chat.id
+    bot = context.bot
+    message_id = update.message.message_id
+
+    if not can_delete_messages(bot, update):
+        return
+
+    with dataWorker.session_scope() as session:
+        phrases_query = session.query(BlockedPhrases).filter(BlockedPhrases.chat_id == chat_id)
+        phrases = phrases_query.all()
+        text = " " + update.message.text.lower() + " "
+        for phrase in phrases:
+            search_phrase = " " + phrase.blockedPhrase + " "
+            if search_phrase in text:
+                API.delete_message(bot, chat_id, message_id)
+                return
 
 
 def send_wel_message(bot, kwargs):
