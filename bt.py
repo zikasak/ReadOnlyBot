@@ -52,7 +52,9 @@ def start_bot():
 def is_need_delete(chat_id):
     with dataWorker.session_scope() as session:
         cur_status = session.query(GroupStatus).get(chat_id)
-        return cur_status is not None and cur_status.status
+        delete_required = cur_status is not None and cur_status.status
+        logger.info(f"chat_id: {chat_id} delete_required: {delete_required}")
+        return delete_required
 
 
 def __register_cmd_handler(cmd, command):
