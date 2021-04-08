@@ -143,7 +143,7 @@ def delete_blocked_phrases(update, context):
     bot = context.bot
     message_id = update.message.message_id
 
-    if not can_delete_messages(bot, update):
+    if not can_delete_messages(bot, update) or is_user_admin(bot, update, update.message.from_user.id):
         return
 
     with dataWorker.session_scope() as session:

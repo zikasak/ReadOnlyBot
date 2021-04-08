@@ -288,10 +288,24 @@ class DeletePhrase(Command):
     def execute(self, bot, update, txt):
         with self.dbWorker.session_scope() as session:
             txt = txt.strip().lower()
-            session.query(BlockedPhrases)\
-                .filter(BlockedPhrases.blockedPhrase == txt)\
+            session.query(BlockedPhrases) \
+                .filter(BlockedPhrases.blockedPhrase == txt) \
                 .delete(synchronize_session=False)
         if can_delete_messages(bot, update):
             API.delete_message(bot,
                                chat_id=update.message.chat_id,
                                message_id=update.message.message_id)
+
+
+class GetPhrases(Command):
+
+    def __init__(self, db_worker, cmd):
+        super().__init__(db_worker, cmd, True)
+
+    def execute(self, bot, update, txt):
+        chat_id = update.message.chat_id
+        with self.dbWorker.session_scope() as session:
+            phrases = session.query(BlockedPhrases).filter(BlockedPhrases.chat_id == chat_id).all()
+            phrases = map(lambda x: x.blockedPhrase, phrases)
+            phrases = "\n".join(phrases)
+            API.send_message(bot, chat_id=chat_id, text=phrases)
