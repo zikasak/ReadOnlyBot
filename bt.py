@@ -12,10 +12,7 @@ from dbConfig import engine
 from dbSchema import GroupStatus, MutedUser, BlockedPhrases
 import dbWorker
 import time
-import logging
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+from logs import logger
 
 dataWorker = dbWorker.DbWorker(engine)
 
@@ -125,6 +122,7 @@ def proceed_message(update, context):
         return
 
     cmd, txt = Command.parse_command(update.message.text)
+    logger.info(f"chat_id: {update.message.chat_id} user_id: {update.message.from_user.id} cmd: {cmd}")
     if cmd == "":
         delete_blocked_phrases(update, context)
         return
