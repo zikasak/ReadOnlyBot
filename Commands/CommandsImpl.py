@@ -266,6 +266,7 @@ class AddPhrase(Command):
         super().__init__(db_worker, cmd, True)
 
     def execute(self, bot, update, txt):
+        chat_id = update.message.chat_id
         with self.dbWorker.session_scope() as session:
             chat: GroupStatus = session.query(GroupStatus).get(update.message.chat_id)
             if chat is None:
@@ -274,6 +275,7 @@ class AddPhrase(Command):
             phrase = BlockedPhrases()
             phrase.blockedPhrase = txt
             chat.blocked_phrases.append(phrase)
+        API.send_message(bot, chat_id=chat_id, text="Фраза добавлена")
         if can_delete_messages(bot, update):
             API.delete_message(bot,
                                chat_id=update.message.chat_id,
@@ -286,11 +288,13 @@ class DeletePhrase(Command):
         super().__init__(db_worker, cmd, True)
 
     def execute(self, bot, update, txt):
+        chat_id = update.message.chat_id
         with self.dbWorker.session_scope() as session:
             txt = txt.strip().lower()
             session.query(BlockedPhrases) \
                 .filter(BlockedPhrases.blockedPhrase == txt) \
                 .delete(synchronize_session=False)
+        API.send_message(bot, chat_id=chat_id, text="Фраза удалена")
         if can_delete_messages(bot, update):
             API.delete_message(bot,
                                chat_id=update.message.chat_id,
@@ -306,6 +310,9 @@ class GetPhrases(Command):
         chat_id = update.message.chat_id
         with self.dbWorker.session_scope() as session:
             phrases = session.query(BlockedPhrases).filter(BlockedPhrases.chat_id == chat_id).all()
+            if len(phrases) == 0:
+                API.send_message(bot, chat_id=chat_id, text="Нет запрещенных фраз")
+                return
             phrases = map(lambda x: x.blockedPhrase, phrases)
             phrases = "\n".join(phrases)
             API.send_message(bot, chat_id=chat_id, text=phrases)
