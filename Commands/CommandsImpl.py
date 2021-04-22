@@ -160,11 +160,12 @@ class SetWelcomeMessage(Command):
 
     def execute(self, bot, update, txt):
         pattern = re.compile('^(?P<param>b )?(?P<text>[\s\S\w]+)')
+        isBlocking = False
         if txt is not None:
             m = pattern.search(txt.strip())
             text = m.group('text')
-        isBlocking = m.group('param')
-        isBlocking = isBlocking is not None and "" != isBlocking
+            isBlocking = m.group('param')
+            isBlocking = isBlocking is not None and "" != isBlocking
         with self.dbWorker.session_scope() as session:
             group = session.query(GroupStatus).get(update.message.chat_id)
             if group is None:
