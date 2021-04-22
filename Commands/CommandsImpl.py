@@ -160,8 +160,9 @@ class SetWelcomeMessage(Command):
 
     def execute(self, bot, update, txt):
         pattern = re.compile('^(?P<param>b )?(?P<text>[\s\S\w]+)')
-        m = pattern.search(txt.strip())
-        text = m.group('text')
+        if txt is not None:
+            m = pattern.search(txt.strip())
+            text = m.group('text')
         isBlocking = m.group('param')
         isBlocking = isBlocking is not None and "" != isBlocking
         with self.dbWorker.session_scope() as session:
